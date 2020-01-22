@@ -152,7 +152,7 @@ void omx_event_handler(void *userdata, COMPONENT_T *comp, OMX_U32 data) {
     logger_log(renderer->logger, LOGGER_DEBUG, "Video renderer config change: %p: %d", comp, data);
 }
 
-int video_renderer_init_decoder(video_renderer_t *renderer) {
+int video_renderer_init_decoder(video_renderer_t *renderer, bool rotate) {
     memset(renderer->components, 0, sizeof(renderer->components));
     memset(renderer->tunnels, 0, sizeof(renderer->tunnels));
 
@@ -250,6 +250,8 @@ int video_renderer_init_decoder(video_renderer_t *renderer) {
     OMX_CONFIG_DISPLAYREGIONTYPE display_region;
     memset(&display_region, 0, sizeof(OMX_CONFIG_DISPLAYREGIONTYPE));
     display_region.nSize = sizeof(OMX_CONFIG_DISPLAYREGIONTYPE);
+    //OMX_DISPLAYTRANSFORMTYPE transform = OMX_DISPLAY_ROT180;
+    //display_region.transform = (OMX_DISPLAYTRANSFORMTYPE)6;
     display_region.nVersion.nVersion = OMX_VERSION;
     display_region.nPortIndex = 90;
     display_region.set = OMX_DISPLAY_SET_FULLSCREEN | OMX_DISPLAY_SET_LAYER;
@@ -267,6 +269,23 @@ int video_renderer_init_decoder(video_renderer_t *renderer) {
     if (ilclient_setup_tunnel(&renderer->tunnels[2], 0, 0) != 0) {
         video_renderer_destroy_decoder(renderer);
         return -15;
+    }
+
+    // Setup rotation
+    if (rotate) {
+	    OMX_CONFIG_ROTATIONTYPE rotation;
+	    memset(&rotation, 0, sizeof(OMX_CONFIG_ROTATIONTYPE));
+	    rotation.nSize = sizeof(OMX_CONFIG_ROTATIONTYPE);
+	    rotation.nRotation = -90;
+	    rotation.nPortIndex = 90;
+	    rotation.nVersion.nVersion = OMX_VERSION;
+	    OMX_ERRORTYPE error = OMX_SetConfig(ilclient_get_handle(renderer->video_renderer), OMX_IndexConfigCommonRotate,
+				 &rotation);
+	    if (error != OMX_ErrorNone) {
+		printf("Error: %x\n", error);
+		video_renderer_destroy_decoder(renderer);
+		return -15;
+	    }
     }
 
     // Set decoder format
@@ -290,7 +309,7 @@ int video_renderer_init_decoder(video_renderer_t *renderer) {
     return 1;
 }
 
-video_renderer_t *video_renderer_init(logger_t *logger, background_mode_t background_mode, bool low_latency) {
+video_renderer_t *video_renderer_init(logger_t *logger, background_mode_t background_mode, bool low_latency, bool rotate) {
     video_renderer_t *renderer;
     renderer = calloc(1, sizeof(video_renderer_t));
     if (!renderer) {
@@ -304,7 +323,7 @@ video_renderer_t *video_renderer_init(logger_t *logger, background_mode_t backgr
     renderer->first_packet_time = 0;
     renderer->input_frames = 0;
 
-    if (video_renderer_init_decoder(renderer) != 1) {
+    if (video_renderer_init_decoder(renderer, rotate) != 1) {
         free(renderer);
         renderer = NULL;
     }
