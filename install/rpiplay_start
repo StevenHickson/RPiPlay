@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# cron script to save a update local database.
+#
+# Written by Steven Hickson <help@stevenhickson.com> for the playvideo project.
+#
+PATH=/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+
+@reboot root service rpiplay start
+@reboot pi node /home/pi/RPiPlay/node/index.js

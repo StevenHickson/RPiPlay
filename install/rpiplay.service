@@ -1,0 +1,13 @@
+Description=rpiplay
+
+[Service] 
+Restart=on-failure
+WorkingDirectory=/home/pi/RPiPlay/build/
+EnvironmentFile=/home/pi/RPiPlay/.rpiplay_conf
+ExecStart=/home/pi/RPiPlay/build/rpiplay -n kitchentv $ARG1
+ExecReload=/bin/kill -HUP $MAINPID 
+KillSignal=SIGINT 
+
+[Install] 
+WantedBy=default.target
+User=pi
